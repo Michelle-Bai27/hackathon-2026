@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+:root {
+  --canvas: #f4f0e8;
+  --paper: #fbfaf6;
+  --sidebar: #ece7dc;
+  --tutor: #f7f3ea;
+  --ink: #1f1b16;
+  --muted: #6f675d;
+  --line: #e0d8c8;
+  --accent: #3d5a4c;
+  --terracotta: #b4532a;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-paper: var(--paper);
+  --color-sidebar: var(--sidebar);
+  --color-tutor: var(--tutor);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-terracotta: var(--terracotta);
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.btn-primary {
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.55rem 1.1rem;
+  font-size: 0.875rem;
+}
+
+.btn-primary:disabled {
+  opacity: 0.4;
+}
+
+.btn-ghost {
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  padding: 0.55rem 1.1rem;
+  font-size: 0.875rem;
+}
+
+.btn-sidebar {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 0.4rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.icon-btn {
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.notes-body h1 {
+  font-family: var(--font-display), serif;
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.notes-body h2 {
+  font-family: var(--font-display), serif;
+  font-size: 1.35rem;
+  margin-top: 1.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.notes-body h3 {
+  font-family: var(--font-display), serif;
+  font-size: 1.1rem;
+  margin-top: 1.1rem;
+  margin-bottom: 0.4rem;
+}
+
+.notes-body p,
+.notes-body li {
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.notes-body blockquote {
+  border-left: 2px solid var(--accent);
+  padding-left: 0.85rem;
+  color: var(--muted);
+  font-style: italic;
+}
