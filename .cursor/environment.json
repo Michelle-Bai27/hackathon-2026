@@ -1,0 +1,11 @@
+{
+  "name": "hackathon-2026",
+  "install": "npm install",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "npm run dev"
+    }
+  ],
+  "ports": [5173, 3001]
+}
