@@ -1,5 +1,5 @@
 import { createId, nowIso } from "../ids";
-import { analyzeLecture } from "../ai/client";
+import { analyzeLecture, runAi } from "../ai/client";
 import { notesFromKnowledge, quizFromKnowledge } from "../ai/derive";
 import { putOriginalFile } from "../storage/idb";
 import type { FileKind, LectureRecord, ProcessingStatus, SlideRecord } from "../types";
@@ -84,12 +84,36 @@ export async function processUploadedLecture(options: {
   await wait(150);
 
   options.onStatus("notes");
-  const notes = notesFromKnowledge(knowledge, "standard");
-  const quiz = quizFromKnowledge(knowledge, {
-    count: Math.min(10, Math.max(5, Math.ceil(slides.length * 0.4))),
+  let notes = notesFromKnowledge(knowledge, "standard");
+  try {
+    notes = await runAi({
+      kind: "notes",
+      lecture,
+      slides,
+      detail: "standard",
+      knowledge,
+    });
+  } catch {
+    // keep local notes if OpenAI is unavailable
+  }
+  let quiz = quizFromKnowledge(knowledge, {
+    count: 5,
     difficulty: "medium",
     types: ["multiple_choice", "true_false", "short_answer"],
   });
+  try {
+    quiz = await runAi({
+      kind: "quiz",
+      lecture,
+      slides,
+      count: 5,
+      difficulty: "medium",
+      types: ["multiple_choice", "true_false", "short_answer"],
+      knowledge,
+    });
+  } catch {
+    // keep local quiz if OpenAI is unavailable
+  }
 
   lecture.processingStatus = "ready";
   return { lecture, slides, notes, quiz, knowledge };

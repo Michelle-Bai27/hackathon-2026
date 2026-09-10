@@ -10,6 +10,7 @@ import type {
   TutorExplanation,
 } from "../types";
 import { analyzeLectureLocal } from "./analyze";
+import { compactLecture, compactSlide } from "./context";
 import { generateNotes as localNotes, generateQuiz as localQuiz } from "./generate";
 import { explanationFromKnowledge, answerFromKnowledge } from "./serve";
 
@@ -59,37 +60,46 @@ export type AiRequest = AnalyzeRequest | ExplainRequest | ChatRequest | NotesReq
 
 export async function analyzeLecture(lecture: LectureRecord, slides: SlideRecord[]): Promise<LectureKnowledge> {
   try {
-    const res = await fetch("/api/ai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: "analyze", lecture: compactLecture(lecture), slides: slides.map(compactSlide) }),
+    const parsed = await postAi<LectureKnowledge>("/api/ai", {
+      kind: "analyze",
+      lecture: compactLecture(lecture),
+      slides: slides.map(compactSlide),
     });
-    if (res.ok) {
-      const parsed = (await res.json()) as LectureKnowledge;
-      if (parsed?.slides?.length) {
-        return { ...parsed, lectureId: lecture.id };
-      }
+    if (parsed?.slides?.length) {
+      return { ...parsed, lectureId: lecture.id };
     }
   } catch {
-    // local pipeline
+    // upload still succeeds with a local outline
   }
   return analyzeLectureLocal(lecture, slides);
 }
 
 export async function runAi<T>(request: AiRequest): Promise<T> {
-  try {
-    const res = await fetch("/api/ai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(compactRequest(request)),
-    });
-    if (res.ok) {
-      return (await res.json()) as T;
-    }
-  } catch {
-    // fall through
+  return postAi<T>(endpointFor(request.kind), compactRequest(request));
+}
+
+async function postAi<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data: unknown = await res.json().catch(() => null);
+  if (!res.ok) {
+    const message =
+      data && typeof data === "object" && "message" in data && typeof data.message === "string"
+        ? data.message
+        : `Request failed (${res.status})`;
+    throw new Error(message);
   }
-  return localFallback(request) as T;
+  return data as T;
+}
+
+function endpointFor(kind: AiRequest["kind"]) {
+  if (kind === "notes") return "/api/notes";
+  if (kind === "quiz") return "/api/quiz";
+  if (kind === "explain" || kind === "chat") return "/api/tutor";
+  return "/api/ai";
 }
 
 export function localFallback(request: AiRequest) {
@@ -127,35 +137,6 @@ function compactRequest(request: AiRequest): AiRequest {
     return { ...request, lecture: compactLecture(request.lecture), slides: request.slides.map(compactSlide) };
   }
   return request;
-}
-
-function compactLecture(lecture: LectureRecord): LectureRecord {
-  return {
-    id: lecture.id,
-    classId: lecture.classId,
-    folderId: lecture.folderId,
-    title: lecture.title,
-    originalFileName: lecture.originalFileName,
-    type: lecture.type,
-    createdAt: lecture.createdAt,
-    processingStatus: lecture.processingStatus,
-    subject: lecture.subject,
-    overview: lecture.overview,
-  };
-}
-
-function compactSlide(slide: SlideRecord): SlideRecord {
-  return {
-    id: slide.id,
-    lectureId: slide.lectureId,
-    slideNumber: slide.slideNumber,
-    title: slide.title,
-    extractedText: slide.extractedText.slice(0, 900),
-    visualKind: slide.visualKind,
-    bullets: slide.bullets.slice(0, 10),
-    diagramId: slide.diagramId,
-    imageId: slide.imageId ? "1" : undefined,
-  };
 }
 
 export type { TutorExplanation, NotesRecord, QuizRecord };

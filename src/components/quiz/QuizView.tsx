@@ -34,7 +34,7 @@ export function QuizView({
   onJumpToSlide?: (slideNumber: number) => void;
 }) {
   const { saveQuiz } = useApp();
-  const [count, setCount] = useState(quiz?.questions.length || 8);
+  const [count, setCount] = useState(quiz?.questions.length || 5);
   const [difficulty, setDifficulty] = useState<QuizDifficulty>(quiz?.difficulty ?? "medium");
   const [types, setTypes] = useState<QuizQuestionType[]>(
     quiz?.questionTypes ?? ["multiple_choice", "true_false", "short_answer"],
@@ -42,6 +42,7 @@ export function QuizView({
   const [started, setStarted] = useState(false);
   const [cursor, setCursor] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [shortDraft, setShortDraft] = useState("");
   const [showResults, setShowResults] = useState(false);
 
@@ -64,6 +65,7 @@ export function QuizView({
 
   async function generate() {
     setBusy(true);
+    setError(null);
     try {
       const next = await runAi<QuizRecord>({
         kind: "quiz",
@@ -77,6 +79,8 @@ export function QuizView({
       saveQuiz({ ...next, lectureId: lecture.id, answers: {}, revealed: {} });
       setCursor(0);
       setStarted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The quiz could not be generated from this lecture.");
     } finally {
       setBusy(false);
     }
@@ -172,6 +176,7 @@ export function QuizView({
             {busy ? "Writing questions…" : quiz ? "Regenerate" : "Generate quiz"}
           </button>
         </div>
+        {error ? <p className="mt-4 text-sm text-terracotta">{error}</p> : null}
       </div>
     );
   }

@@ -22,6 +22,7 @@ export function NotesView({
   const { saveNotes } = useApp();
   const [detail, setDetail] = useState<NotesDetail>(notes?.detail ?? "standard");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (notes || busy) return;
@@ -41,6 +42,7 @@ export function NotesView({
   async function regenerate(next: NotesDetail) {
     setDetail(next);
     setBusy(true);
+    setError(null);
     try {
       const generated = await runAi<NotesRecord>({
         kind: "notes",
@@ -50,6 +52,8 @@ export function NotesView({
         knowledge,
       });
       saveNotes({ ...generated, lectureId: lecture.id, detail: next });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Notes could not be generated from this lecture.");
     } finally {
       setBusy(false);
     }
@@ -78,6 +82,7 @@ export function NotesView({
         </div>
       </div>
       {busy ? <p className="mb-4 text-sm text-muted">Regenerating notes…</p> : null}
+      {error ? <p className="mb-4 text-sm text-terracotta">{error}</p> : null}
       {figureSlides.length ? (
         <div className="mb-8 grid grid-cols-3 gap-3">
           {figureSlides.map((slide) => (

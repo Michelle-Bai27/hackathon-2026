@@ -2,9 +2,9 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
-import type { ChatMessage, LectureKnowledge, LectureRecord, SlideRecord } from "@/lib/types";
+import type { ChatMessage, LectureKnowledge, LectureRecord, SlideRecord, TutorExplanation } from "@/lib/types";
 import { runAi } from "@/lib/ai/client";
-import { explanationFromKnowledge, formatTeacherMessage } from "@/lib/ai/serve";
+import { formatTeacherMessage } from "@/lib/ai/serve";
 import { createId, nowIso } from "@/lib/ids";
 import { useApp } from "@/context/AppContext";
 
@@ -25,6 +25,7 @@ export function TutorPanel({
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [aiDown, setAiDown] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const slide = slides[index];
 
@@ -39,16 +40,16 @@ export function TutorPanel({
     (async () => {
       setBusy(true);
       try {
-        const exp = knowledge
-          ? explanationFromKnowledge(lecture, slides, index, knowledge)
-          : await runAi<ReturnType<typeof explanationFromKnowledge>>({
-              kind: "explain",
-              lecture,
-              slides,
-              index,
-              knowledge,
-            });
+        const exp = await runAi<TutorExplanation>({
+          kind: "explain",
+          lecture,
+          slides,
+          index,
+          knowledge,
+        });
         if (cancelled) return;
+        setAiDown(false);
+        setAiError(null);
         pushMessage(lecture.id, slide.id, {
           id: createId("msg"),
           role: "tutor",
@@ -56,8 +57,11 @@ export function TutorPanel({
           createdAt: nowIso(),
           fromLecture: true,
         });
-      } catch {
-        if (!cancelled) setAiDown(true);
+      } catch (error) {
+        if (!cancelled) {
+          setAiDown(true);
+          setAiError(error instanceof Error ? error.message : "The tutor could not explain this slide.");
+        }
       } finally {
         if (!cancelled) setBusy(false);
       }
@@ -96,8 +100,10 @@ export function TutorPanel({
         createdAt: nowIso(),
       });
       setAiDown(false);
-    } catch {
+      setAiError(null);
+    } catch (error) {
       setAiDown(true);
+      setAiError(error instanceof Error ? error.message : "The tutor could not answer that question.");
     } finally {
       setBusy(false);
     }
@@ -117,7 +123,7 @@ export function TutorPanel({
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
         {aiDown ? (
           <p className="rounded-xl border border-line bg-paper px-3 py-2 text-sm text-muted">
-            Your lecture is still available. AI explanations are temporarily unavailable.
+            {aiError ?? "Your lecture is still available. AI explanations are temporarily unavailable."}
           </p>
         ) : null}
         {conversation.map((message) => (
